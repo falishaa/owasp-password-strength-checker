@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Password Strength Checker</title>
+<style>
+  * { box-sizing: border-box; }
+
+  :root {
+    --grey: #C0C0C0;
+    --grey-dark: #808080;
+    --grey-darker: #0A0A0A;
+    --grey-light: #DFDFDF;
+    --white: #FFFFFF;
+    --titlebar-from: #000080;
+    --titlebar-to: #1084D0;
+    --desktop: #008080;
+    --weak: #C00000;
+    --moderate: #C08000;
+    --strong: #008000;
+    --excellent: #00A000;
+  }
+
+  html, body {
+    height: 100%;
+    margin: 0;
+  }
+
+  body {
+    background: var(--desktop);
+    font-family: Tahoma, "MS Sans Serif", Geneva, sans-serif;
+    font-size: 12px;
+    color: #000;
+    overflow: hidden;
+  }
+
+  /* ---------- Beveled border utility (Win95 3D effect) ---------- */
+  .raised {
+    border-top: 1px solid var(--white);
+    border-left: 1px solid var(--white);
+    border-right: 1px solid var(--grey-darker);
+    border-bottom: 1px solid var(--grey-darker);
+    box-shadow:
+      inset 1px 1px 0 var(--grey-light),
+      inset -1px -1px 0 var(--grey-dark);
+  }
+
+  .sunken {
+    border-top: 1px solid var(--grey-darker);
+    border-left: 1px solid var(--grey-darker);
+    border-right: 1px solid var(--white);
+    border-bottom: 1px solid var(--white);
+    box-shadow:
+      inset 1px 1px 0 var(--grey-dark),
+      inset -1px -1px 0 var(--grey-light);
+  }
+
+  /* ---------- Desktop icons ---------- */
+  .desktop-icons {
+    position: absolute;
+    top: 16px;
+    left: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+  }
+
+  .desktop-icon {
+    width: 72px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    cursor: default;
+    user-select: none;
+  }
+
+  .desktop-icon .glyph {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 26px;
+    filter: drop-shadow(1px 1px 0 rgba(0,0,0,0.4));
+  }
+
+  .desktop-icon .label {
+    color: var(--white);
+    text-shadow: 1px 1px 1px #000;
+    font-size: 11px;
+    text-align: center;
+    line-height: 1.3;
+  }
+
+  /* ---------- Window ---------- */
+  .window {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 440px;
+    max-width: calc(100vw - 24px);
+    background: var(--grey);
+    padding: 2px;
+  }
+
+  .title-bar {
+    background: linear-gradient(90deg, var(--titlebar-from), var(--titlebar-to));
+    color: var(--white);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 3px 3px 3px 6px;
+    font-weight: bold;
+    font-size: 12px;
+  }
+
+  .title-bar-text {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .title-bar-controls {
+    display: flex;
+    gap: 2px;
+  }
+
+  .title-bar-controls button {
+    width: 18px;
+    height: 16px;
+    background: var(--grey);
+    border: none;
+    font-family: Tahoma, sans-serif;
+    font-size: 11px;
+    font-weight: bold;
+    line-height: 1;
+    padding: 0;
+    cursor: default;
+  }
+
+  .window-body {
+    padding: 14px 16px 10px;
+  }
+
+  .window-body h1 {
+    font-size: 13px;
+    margin: 0 0 4px;
+    font-weight: bold;
+  }
+
+  .window-body .desc {
+    font-size: 11px;
+    margin: 0 0 14px;
+    line-height: 1.5;
+    color: #000;
+  }
+
+  .window-body .desc a { color: #00008B; }
+
+  fieldset {
+    border-top: 1px solid var(--grey-darker);
+    border-left: 1px solid var(--grey-darker);
+    border-right: 1px solid var(--white);
+    border-bottom: 1px solid var(--white);
+    margin: 0 0 14px;
+    padding: 10px 10px 12px;
+  }
+
+  legend {
+    font-size: 11px;
+    padding: 0 4px;
+  }
+
+  .input-row {
+    position: relative;
+    display: flex;
+    gap: 6px;
+  }
+
+  input[type="password"],
+  input[type="text"] {
+    flex: 1;
+    background: var(--white);
+    border: none;
+    padding: 5px 6px;
+    font-family: Tahoma, sans-serif;
+    font-size: 12px;
+    outline: none;
+  }
+
+  .win-button {
+    background: var(--grey);
+    border: none;
+    font-family: Tahoma, sans-serif;
+    font-size: 11px;
+    padding: 5px 10px;
+    cursor: default;
+  }
+
+  .win-button:active {
+    border-top: 1px solid var(--grey-darker);
+    border-left: 1px solid var(--grey-darker);
+    border-right: 1px solid var(--white);
+    border-bottom: 1px solid var(--white);
+    box-shadow: none;
+    padding: 6px 9px 4px 11px;
+  }
+
+  /* ---------- Retro segmented progress bar ---------- */
+  .meter-label-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    margin: 14px 0 4px;
+  }
+
+  .meter-track {
+    height: 18px;
+    background: var(--white);
+    padding: 2px;
+  }
+
+  .meter-fill {
+    height: 100%;
+    width: 0%;
+    background-color: var(--grey-dark);
+    background-image: repeating-linear-gradient(
+      90deg,
+      var(--fill-color, var(--grey-dark)) 0px,
+      var(--fill-color, var(--grey-dark)) 12px,
+      var(--white) 12px,
+      var(--white) 15px
+    );
+    transition: width 0.2s steps(7, end);
+  }
+
+  /* ---------- Status bar (result output) ---------- */
+  .status-bar {
+    border-top: 1px solid var(--white);
+    padding-top: 8px;
+  }
+
+  .status-panel {
+    padding: 6px 8px;
+    font-size: 11px;
+    min-height: 20px;
+  }
+
+  .errors {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .errors li {
+    padding-left: 14px;
+    position: relative;
+  }
+
+  .errors li::before {
+    content: "\2716";
+    position: absolute;
+    left: 0;
+    color: var(--weak);
+    font-size: 9px;
+    top: 2px;
+  }
+
+  .all-clear {
+    color: var(--strong);
+    font-weight: bold;
+  }
+
+  .all-clear::before {
+    content: "\2714 ";
+  }
+
+  /* ---------- Taskbar ---------- */
+  .taskbar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 30px;
+    background: var(--grey);
+    border-top: 1px solid var(--white);
+    display: flex;
+    align-items: center;
+    padding: 3px 4px;
+    gap: 6px;
+  }
+
+  .start-button {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 10px;
+    font-weight: bold;
+    font-size: 12px;
+    background: var(--grey);
+    border: none;
+    cursor: default;
+  }
+
+  .taskbar-divider {
+    width: 2px;
+    height: 22px;
+    border-left: 1px solid var(--grey-darker);
+    border-right: 1px solid var(--white);
+  }
+
+  .taskbar-app {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 10px;
+    font-size: 12px;
+    height: 22px;
+  }
+
+  .clock {
+    margin-left: auto;
+    padding: 4px 10px;
+    font-size: 12px;
+  }
+</style>
+</head>
+<body>
+
+  <div class="desktop-icons">
+    <div class="desktop-icon">
+      <div class="glyph">🖥️</div>
+      <div class="label">My Computer</div>
+    </div>
+    <div class="desktop-icon">
+      <div class="glyph">🗑️</div>
+      <div class="label">Recycle Bin</div>
+    </div>
+    <div class="desktop-icon">
+      <div class="glyph">🌐</div>
+      <div class="label">Network<br />Neighborhood</div>
+    </div>
+    <div class="desktop-icon">
+      <div class="glyph">📄</div>
+      <div class="label">README.txt</div>
+    </div>
+  </div>
+
+  <div class="window">
+    <div class="title-bar">
+      <div class="title-bar-text">🔒 Password Strength Checker.exe</div>
+      <div class="title-bar-controls">
+        <button class="raised" aria-label="Minimize">_</button>
+        <button class="raised" aria-label="Maximize">&#9633;</button>
+        <button class="raised" aria-label="Close">X</button>
+      </div>
+    </div>
+
+    <div class="window-body">
+      <h1>How strong is your password?</h1>
+      <p class="desc">
+        Check your password against <a href="https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html" target="_blank" rel="noopener">OWASP authentication guidance</a> for
+        length, character variety, and known-breach status.
+      </p>
+
+      <fieldset>
+        <legend>Enter a password</legend>
+        <div class="input-row">
+          <input type="password" id="password" placeholder="Type here..." autocomplete="off" class="sunken" />
+          <button class="win-button raised" id="toggleVisibility" type="button">Show</button>
+        </div>
+      </fieldset>
+
+      <div class="meter-label-row">
+        <span>Strength:</span>
+        <span id="verdictLabel">—</span>
+      </div>
+      <div class="meter-track sunken">
+        <div class="meter-fill" id="meterFill"></div>
+      </div>
+
+      <div class="status-bar">
+        <div class="status-panel sunken" id="resultArea">
+          No password entered yet.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="taskbar">
+    <button class="start-button raised">
+      <span>🪟</span> Start
+    </button>
+    <div class="taskbar-divider"></div>
+    <div class="taskbar-app sunken">🔒 Password Strength Checker</div>
+    <div class="clock sunken" id="clock">12:00 PM</div>
+  </div>
+
+<script>
+  const input = document.getElementById('password');
+  const toggleBtn = document.getElementById('toggleVisibility');
+  const meterFill = document.getElementById('meterFill');
+  const verdictLabel = document.getElementById('verdictLabel');
+  const resultArea = document.getElementById('resultArea');
+  const clock = document.getElementById('clock');
+
+  const verdictColors = {
+    'Weak': '#C00000',
+    'Moderate': '#C08000',
+    'Strong': '#008000',
+    'Excellent': '#00A000',
+  };
+
+  toggleBtn.addEventListener('click', () => {
+    const isPassword = input.type === 'password';
+    input.type = isPassword ? 'text' : 'password';
+    toggleBtn.textContent = isPassword ? 'Hide' : 'Show';
+  });
+
+  let debounceTimer = null;
+
+  input.addEventListener('input', () => {
+    clearTimeout(debounceTimer);
+    const value = input.value;
+
+    if (!value) {
+      meterFill.style.width = '0%';
+      meterFill.style.setProperty('--fill-color', '#808080');
+      verdictLabel.textContent = '—';
+      resultArea.textContent = 'No password entered yet.';
+      return;
+    }
+
+    debounceTimer = setTimeout(() => checkPassword(value), 300);
+  });
+
+  async function checkPassword(password) {
+    try {
+      const response = await fetch('/api/check-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password }),
+      });
+
+      if (!response.ok) {
+        resultArea.textContent = 'Something went wrong checking that password. Try again.';
+        return;
+      }
+
+      const data = await response.json();
+      renderResult(data);
+    } catch (err) {
+      resultArea.textContent = 'Could not reach the checker. Is the Flask server running?';
+    }
+  }
+
+  function renderResult(data) {
+    const { verdict, score, errors } = data;
+    const pct = Math.round((score / 7) * 100);
+    const color = verdictColors[verdict] || '#808080';
+
+    meterFill.style.width = pct + '%';
+    meterFill.style.setProperty('--fill-color', color);
+    verdictLabel.textContent = `${verdict} (${score}/7)`;
+
+    if (errors && errors.length > 0) {
+      resultArea.innerHTML = '<ul class="errors">' +
+        errors.map(e => `<li>${escapeHtml(e)}</li>`).join('') +
+        '</ul>';
+    } else {
+      resultArea.innerHTML = '<span class="all-clear">No issues found. This password meets every check!</span>';
+    }
+  }
+
+  function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  function updateClock() {
+    const now = new Date();
+    let hours = now.getHours();
+    const minutes = now.getMinutes().toString().padStart(2, '0');
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12 || 12;
+    clock.textContent = `${hours}:${minutes} ${ampm}`;
+  }
+  updateClock();
+  setInterval(updateClock, 10000);
+</script>
+</body>
+</html>
