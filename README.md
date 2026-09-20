@@ -1,6 +1,11 @@
 # OWASP Password Strength Checker
 
-A Python program to evaluate a password's strength based on OWASP authentication guidelines.
+A Python program to evaluate a password's strength based on OWASP authentication guidelines. Stylized with a retro Windows 95 theme.
+
+## Gallery
+<img width="950" height="434" alt="password-strength-gallery1" src="https://github.com/user-attachments/assets/eebf7a9e-8ad7-4c74-9c57-71b41a117689" />
+<img width="950" height="434" alt="password-strength-gallery2" src="https://github.com/user-attachments/assets/dbfafc9a-dcb6-4060-b4d6-57cf00892d2c" />
+
 
 ## Features
 
